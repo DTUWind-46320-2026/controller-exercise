@@ -6,21 +6,31 @@ Created on Tue Jan 17 12:32:16 2023
 @author: wali
 """
 
-from lib.lib_main import * # importing modules from the folder
+from lib.lib_main import *  # importing modules from the folder
 
-Simulation_TEND = 120.0 # Simulation lenght in seconds
+Simulation_TEND = 120.0  # Simulation lenght in seconds
 SimParams = SimParams_(Simulation_TEND)
 
-Open_Loop_Pitch = 1 #  pitch angle in degrees
-Open_Gen_Torque = 1 # generator reaction torque in Nm
+Open_Loop_Pitch = 1  #  pitch angle in degrees
+Open_Gen_Torque = 1  # generator reaction torque in Nm
 
-Controller_Type = 'PI' # Controller Type, OL:Open Loop, P: Proportional, PI: Proportional-Integral
+Controller_Type = (
+    "PI"  # Controller Type, OL:Open Loop, P: Proportional, PI: Proportional-Integral
+)
 Kp = 0.2
 Ki = 0.04
-Controller = Controller_(Controller_Type, Kp = Kp, Ki = Ki, Open_Loop_Pitch = Open_Loop_Pitch, Open_Gen_Torque  = Open_Gen_Torque)
+Controller = Controller_(
+    Controller_Type,
+    Kp=Kp,
+    Ki=Ki,
+    Open_Loop_Pitch=Open_Loop_Pitch,
+    Open_Gen_Torque=Open_Gen_Torque,
+)
 
-WT_Model = 'WT0' # Model complexity,  WT0:Rotor,   WT1:Rotor+DT,  WT2:Rotor+DT+Tower fore-aft
-WT = WT_(WT_Model,SimParams)
+WT_Model = (
+    "WT0"  # Model complexity,  WT0:Rotor,   WT1:Rotor+DT,  WT2:Rotor+DT+Tower fore-aft
+)
+WT = WT_(WT_Model, SimParams)
 
 # ------------------------------------------------------------------------------------
 #   Choose the wind speed profile here:
@@ -40,5 +50,5 @@ wind_profile_options = 7
 
 data = simulate(SimParams, WT, Controller, wind_profile_options)
 
-figsize = (8,8)
-gen_plot(WT, SimParams, data,figsize)
+figsize = (8, 8)
+gen_plot(WT, SimParams, data, figsize)
