@@ -6,7 +6,7 @@ Created on Tue Jan 17 12:26:14 2023
 @author: wali
 """
 
-from lib.lib_main import *  # importing modules from the folder
+from wtmodel.lib_main import *  # importing modules from the folder
 
 Simulation_TEND = 300.0  # Simulation lenght in seconds
 SimParams = SimParams_(Simulation_TEND)
