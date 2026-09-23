@@ -6,11 +6,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import interpolate, linalg
+from scipy import linalg
 from scipy.interpolate import RegularGridInterpolator
 
 
-class SimParams_:
+class SimulationParameters:
     """Simulation parameters"""
 
     def __init__(self, Simulation_TEND=200, Ts=0.1, OmegaInit=1):

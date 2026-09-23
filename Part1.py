@@ -1,12 +1,28 @@
 """
-Part 1
+Simulate a simple model of a wind turbine with a controller.
+
+Possible variations in the script:
+    * Wind turbine model dynamics:
+        WP0: only a rigid rotor
+        WP1: rigid rotor plus a flexible drivetrain
+        WP2: rigid rotor, flexible drivetrain, and tower fore-aft motion
+    * Wind turbine controller:
+        OL: open-loop controller on both pitch and torque
+        OL2: open-loop controller only on pitch
+        P: P controller on pitch
+        PI: PI controller on pitch
+        gs-PI: gain-scheduled PI pitch controller
+    * Wind speed time series
+        Step-wind
+        Turbulent wind (Kaimal spectrum)
+        Extreme operating gust (EOG)
 """
 
 import wtmodel  # importing modules from the folder
 
 # Simulation_TEND = 200.0  # Simulation length in seconds
 Simulation_TEND = 200.0  # Simulation length in seconds  # TODO
-SimParams = wtmodel.SimParams_(Simulation_TEND)
+SimParams = wtmodel.SimulationParameters(Simulation_TEND)
 
 Open_Loop_Pitch = 1  #  pitch angle in degrees
 Open_Gen_Torque = 1  # generator reaction torque in Nm
