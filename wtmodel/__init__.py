@@ -1,20 +1,23 @@
 """Initialization file for wtmodel package"""
 
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import interpolate, linalg
+from scipy.interpolate import RegularGridInterpolator
 
 
 class SimParams_:
     """Simulation parameters"""
 
-    def __init__(self, Simulation_TEND=200, Ts=0.1):
+    def __init__(self, Simulation_TEND=200, Ts=0.1, OmegaInit=1):
         self.Simulation_TEND = Simulation_TEND
         self.Ts = Ts  # Controller sampling time [s]
         self.NSim = np.floor(self.Simulation_TEND / self.Ts).astype(int)
+        self.OmegaInit = OmegaInit  # initial rotor speed [rad/s]
 
 
 class Controller_:
@@ -71,7 +74,7 @@ def MakeWSP(SimParams, wind_profile_options):
     wsp_file_name = wind_profile_to_name(wind_profile_options)
 
     t = np.linspace(0, SimParams.Simulation_TEND, SimParams.NSim)
-    wsp_data = pd.read_csv("WindFiles/" + wsp_file_name, delim_whitespace=True)
+    wsp_data = pd.read_csv("WindFiles/" + wsp_file_name, sep=r"\s+")
     wsp = np.interp(t, wsp_data.iloc[:, 0], wsp_data.iloc[:, 1])
     return wsp, t
 
@@ -94,7 +97,7 @@ def WT_nonlinear(x, y, u, wsp, WT):
     tsr = omega * WT.Rotor_Radius / ve
     tsr = min(max(tsr, WT.tsr_min), WT.tsr_max)
 
-    Pe = 0.5 * WT.Air_density * np.pi * WT.Rotor_Radius**2 * ve**3 * WT.Cp(tsr, pitch)
+    Pe = 0.5 * WT.Air_density * np.pi * WT.Rotor_Radius**2 * ve**3 * WT.Cp((tsr, pitch))
     Qa = Pe / omega
     Ft = (
         -0.5
@@ -102,7 +105,7 @@ def WT_nonlinear(x, y, u, wsp, WT):
         * np.pi
         * WT.Rotor_Radius**2
         * ve**2
-        * WT.Ct(tsr, pitch)
+        * WT.Ct((tsr, pitch))
         / WT.Tower_M
     )
 
@@ -232,18 +235,24 @@ def PI_Controller(GenRot, SimParams, Controller):
 
 def simulate(SimParams, WT, Controller, wind_profile_options):
     """
-    Simulate a wind turbine with a given controller,
-    simulation parameters and wind profile.
+    Simulate a wind turbine with a given controller, simulation parameters
+    and wind profile.
+
+    Returns dictionary with:
+        x: state vector
+        y: output of dynamical system
+        u: control actions (pitch and generator torque)
+        wsp: wind speed
+        t: time
     """
-    OmegaInit = 1  # rad/s
 
     x = np.zeros([len(WT.A), 1])
     y = np.zeros([WT.C.shape[0], 1])
     u = np.zeros([2, 1])  # [pitch;Qg]
-    x[0, 0] = OmegaInit
+    x[0, 0] = SimParams.OmegaInit
     wsp, t = MakeWSP(SimParams, wind_profile_options)
 
-    for k in range(0, SimParams.NSim):
+    for k in range(SimParams.NSim):
         x_, y_ = WT_nonlinear(x[:, -1], y[:, -1], u[:, -1], wsp[k], WT)
         x, y = np.hstack((x, x_)), np.hstack((y, y_))
         u_ = PI_Controller(x[0, -1], SimParams, Controller)
@@ -262,7 +271,7 @@ def gen_plot(WT, SimParams, data, figsize):
         Vt = np.zeros(OmegaG.shape)
     elif WT.Model == "WT1":
         OmegaG = WT.GEARBOX_RATIO * data["x"][1, :]
-        Vt = np.zeors(OmegaG.shape)
+        Vt = np.zeros(OmegaG.shape)
     elif WT.Model == "WT2":
         OmegaG = WT.GEARBOX_RATIO * data["x"][1, :]
         Vt = data["x"][4, :]
@@ -333,6 +342,9 @@ class WT_:
     """Wind turbine parameters"""
 
     # Turbine Parameters
+    CSV_folder = (
+        Path(".") / "WT_Data" / "DTU10MW"
+    )  # folder containing CP, CT, pitch_grid, and tsr_grid CSVs
     Efficiency = 1
     Pitch_min = 0
     Pitch_max = 30
@@ -397,33 +409,70 @@ class WT_:
     def __init__(self, Model, SimParams):
         self.Model = Model
         # load cp table
-        self.tsr_grid = pd.read_csv("WT_Data/DTU10MW/tsr_grid.csv")
-        self.pitch_grid = pd.read_csv("WT_Data/DTU10MW/pitch_grid.csv")
-        self.CP_grid = pd.read_csv("WT_Data/DTU10MW/CP.csv")
-        self.CT_grid = pd.read_csv("WT_Data/DTU10MW/CT.csv")
+        # self.tsr_grid = pd.read_csv("WT_Data/DTU10MW/tsr_grid.csv")
+        # self.pitch_grid = pd.read_csv("WT_Data/DTU10MW/pitch_grid.csv")
+        # self.CP_grid = pd.read_csv("WT_Data/DTU10MW/CP.csv")
+        # self.CT_grid = pd.read_csv("WT_Data/DTU10MW/CT.csv")
+        self.tsr_grid = np.loadtxt(self.CSV_folder / "tsr_grid.csv", delimiter=",")
+        self.pitch_grid = np.loadtxt(self.CSV_folder / "pitch_grid.csv", delimiter=",")
+        self.CP_grid = np.loadtxt(self.CSV_folder / "CP.csv", delimiter=",")
+        self.CT_grid = np.loadtxt(self.CSV_folder / "CT.csv", delimiter=",")
 
-        self.tsr_range = self.tsr_grid.iloc[:, 0]
-        self.pitch_range = self.pitch_grid.iloc[0, :]
+        self.tsr_range = self.tsr_grid[:, 0]
+        self.pitch_range = self.pitch_grid[0, :]
         self.tsr_min, self.tsr_max = np.min(self.tsr_range), np.max(self.tsr_range)
         self.pitch_min, self.pitch_max = (
             np.min(self.pitch_range),
             np.max(self.pitch_range),
         )
 
-        self.Cp = interpolate.interp2d(
-            self.tsr_range, self.pitch_range, self.CP_grid.T, kind="linear"
+        # Convert to numpy arrays
+        # tsr = self.tsr_range.to_numpy()  # TODO clean
+        # pitch = self.pitch_range.to_numpy()
+        tsr = self.tsr_range
+        pitch = self.pitch_range
+
+        # cp_values = self.CP_grid.to_numpy()  # TODO clean
+        # ct_values = self.CT_grid.to_numpy()
+        cp_values = self.CP_grid
+        ct_values = self.CT_grid
+
+        # Check orientation!
+        self.Cp = RegularGridInterpolator(
+            (tsr, pitch),
+            cp_values,
+            method="linear",
+            bounds_error=False,
+            fill_value=None,
         )
-        self.Ct = interpolate.interp2d(
-            self.tsr_range, self.pitch_range, self.CT_grid.T, kind="linear"
+
+        self.Ct = RegularGridInterpolator(
+            (tsr, pitch),
+            ct_values,
+            method="linear",
+            bounds_error=False,
+            fill_value=None,
         )
+
+        # self.Cp = interpolate.interp2d(
+        #     self.tsr_range, self.pitch_range, self.CP_grid.T, kind="linear"
+        # )
+        # self.Ct = interpolate.interp2d(
+        #     self.tsr_range, self.pitch_range, self.CT_grid.T, kind="linear"
+        # )
+
+        # ------ get continuous state-space matrices ------
+
+        # WT0: Rotor
         if self.Model == "WT0":
             A_c = np.array([[0.0]])  # Continuous time system
             B_c = np.array([[1.0, -1.0]])
             C_c = np.eye(len(A_c))
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # discretise the system
-            self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
+            # # discretise the system  # TODO clean
+            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
+        # WT1: Rotor+DT
         elif self.Model == "WT1":
             A_c = np.array(
                 [
@@ -439,9 +488,10 @@ class WT_:
             B_c = np.array([[1, 0], [0, -1], [0, 0]])
             C_c = np.array([[0, 1, 0]])
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # discretise the system
-            self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
+            # # discretise the system  # TODO clean
+            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
+        # Rotor+DT+Tower fore-aft
         elif self.Model == "WT2":
             A_c = np.array(
                 [
@@ -473,11 +523,14 @@ class WT_:
             B_c = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 1]])
             C_c = np.array([[0, 1, 0, 0, 0]])
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # discretise the system
-            self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
+            # # discretise the system  # TODO clean
+            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
         else:
             print("Invalid wind turbine model!")
+
+        # discretise the system
+        self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
 
 def discretise(A_c, B_c, C_c, D_c, SimParams):
