@@ -20,22 +20,26 @@ Possible variations in the script:
 
 import wtmodel  # importing modules from the folder
 
-# Simulation_TEND = 200.0  # Simulation length in seconds
-Simulation_TEND = 200.0  # Simulation length in seconds  # TODO
-SimParams = wtmodel.SimulationParameters(Simulation_TEND)
+# ----------------- simulation settings -----------------
+SIM_TEND = 200.0  # simulation length [s]
+sim_settings = wtmodel.SimulationParameters(sim_tend=SIM_TEND)
 
-Open_Loop_Pitch = 1  #  pitch angle in degrees
-Open_Gen_Torque = 1  # generator reaction torque in Nm
+# ----------------- wind turbine model dynamics -----------------
+# WT0:Rotor,   WT1:Rotor + DT,  WT2:Rotor + DT + Tower fore-aft
+DYNAMICS_MODEL = "WT0"
+wind_turbine = wtmodel.WindTurbine(DYNAMICS_MODEL, sim_settings)
 
-Controller_Type = "OL"  # Controller Type, OL:Open Loop
-Controller = wtmodel.Controller_(
-    Controller_Type, Open_Loop_Pitch=Open_Loop_Pitch, Open_Gen_Torque=Open_Gen_Torque
+# ----------------- wind turbine controller -----------------
+# TODO reset
+CONTROLLER_TYPE = "OL"  # see module docstring for options
+# Open_Loop_Pitch = 1  #  pitch angle in degrees
+# Open_Gen_Torque = 1  # generator reaction torque in Nm
+OL_PITCH = 7.824  #  open-loop pitch angle [deg]
+OL_GEN_TORQUE = 9.95025e6  # open-loop generator torque [Nm]
+
+controller = wtmodel.Controller(
+    CONTROLLER_TYPE, Open_Loop_Pitch=OL_PITCH, Open_Gen_Torque=OL_GEN_TORQUE
 )
-
-WT_Model = (
-    "WT0"  # Model complexity,  WT0:Rotor,   WT1:Rotor+DT,  WT2:Rotor+DT+Tower fore-aft
-)
-WT = wtmodel.WT_(WT_Model, SimParams)
 
 # ------------------------------------------------------------------------------------
 #   Choose the wind speed profile here:
@@ -53,7 +57,7 @@ WT = wtmodel.WT_(WT_Model, SimParams)
 
 wind_profile_options = 1
 
-data = wtmodel.simulate(SimParams, WT, Controller, wind_profile_options)
+data = wtmodel.simulate(sim_settings, wind_turbine, controller, wind_profile_options)
 
-figsize = (8, 8)
-wtmodel.gen_plot(WT, SimParams, data, figsize)
+figsize = (8, 6)
+wtmodel.gen_plot(wind_turbine, sim_settings, data, figsize)
