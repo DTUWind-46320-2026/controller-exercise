@@ -27,7 +27,7 @@ class Controller_:
     CornerFreq = 0.25 * 2 * np.pi  # rad/s  low pass filter cut-off frequency
     Pnom = 10e6
     Ng = 50
-    GenRot_nom = 9.6 * np.pi / 30
+    GenRot_nom = 9.6 * np.pi / 30  # rad/s
     Qgmax = 14.9253e6
     Qgmin = 0
     dQgmax = 15e5
@@ -125,7 +125,23 @@ def WT_nonlinear(x, y, u, wsp, WT):
 
 
 def PI_Controller(GenRot, SimParams, Controller):
-    """PI controller action"""
+    """
+    PI controller action
+
+    Arguments
+    -----------
+    GenRot : float, int
+        Rotational speed in rad/s.
+    SimParams : wtmodel.SimParams_
+        Instance of SimParams_ class.
+    Controller : wtmodel.Controller_
+        Instance of Controller_ class.
+
+    Returns
+    ----------
+    U : np.ndarray
+        Array of shape (2, 1) with elements pitch [deg] and generator torque [Nm].
+    """
     if GenRot > 2.5:
         warnings.warn("Rotational speed is too high!")
     elif GenRot < 0.2:
@@ -138,6 +154,7 @@ def PI_Controller(GenRot, SimParams, Controller):
     # Low-pass filter for generator speed
     Alpha = np.exp((-Ts) * Controller.CornerFreq)
     GenRot_filter = (1 - Alpha) * GenRot + Alpha * GenRot_filter
+
     # Speed error
     Ep = GenRot_filter - Controller.GenRot_nom
 
@@ -241,14 +258,14 @@ def simulate(SimParams, WT, Controller, wind_profile_options):
     Returns dictionary with:
         x: state vector
         y: output of dynamical system
-        u: control actions (pitch and generator torque)
-        wsp: wind speed
+        u: control actions (pitch [deg] and generator torque[Nm])
+        wsp: wind speed [m/s]
         t: time
     """
 
     x = np.zeros([len(WT.A), 1])
     y = np.zeros([WT.C.shape[0], 1])
-    u = np.zeros([2, 1])  # [pitch;Qg]
+    u = np.zeros([2, 1])  # [pitch; Qg]
     x[0, 0] = SimParams.OmegaInit
     wsp, t = MakeWSP(SimParams, wind_profile_options)
 
@@ -279,7 +296,8 @@ def gen_plot(WT, SimParams, data, figsize):
         warnings.warn("Invalid WT type!")
 
     BladePitch = data["u"][0, :]
-    GenTq = data["u"][1, :] / WT.GEARBOX_RATIO
+    GenTq = data["u"][1, :]
+    # GenTq = data["u"][1, :] / WT.GEARBOX_RATIO
 
     WSP = data["wsp"]
     Pe = OmegaG * GenTq
@@ -305,8 +323,8 @@ def gen_plot(WT, SimParams, data, figsize):
     ax[1, 1].set(title="Blade Pitch [deg]", xlabel="Time [s]")
     ax[1, 1].grid()
 
-    ax[2, 0].plot(t, GenTq * 1e-3)
-    ax[2, 0].set(title="Generator Torque [kNm]", xlabel="Time [s]")
+    ax[2, 0].plot(t, GenTq)
+    ax[2, 0].set(title="Generator Torque [Nm]", xlabel="Time [s]")
     ax[2, 0].grid()
 
     ax[2, 1].plot(t, WSP)
@@ -335,6 +353,8 @@ def gen_plot(WT, SimParams, data, figsize):
     Lambda = WT.Rotor_Radius * OmegaR / WSP
     ax2.plot(BladePitch, Lambda, "r.")
     plt.ylim(2, 18)
+
+    plt.tight_layout()
     plt.show()
 
 

@@ -5,7 +5,7 @@ Part 1
 import wtmodel  # importing modules from the folder
 
 # Simulation_TEND = 200.0  # Simulation length in seconds
-Simulation_TEND = 20.0  # Simulation length in seconds  # TODO
+Simulation_TEND = 200.0  # Simulation length in seconds  # TODO
 SimParams = wtmodel.SimParams_(Simulation_TEND)
 
 Open_Loop_Pitch = 1  #  pitch angle in degrees
