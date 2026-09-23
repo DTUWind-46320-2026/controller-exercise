@@ -248,29 +248,11 @@ class Controller:
         self.genTorq_prev = Open_Gen_Torque
 
 
-def wind_profile_to_name(argument):
-    """Get wind profile by name"""
-    switcher = {
-        1: "MATLAB_Generated_Steps.hh",
-        2: "Kaimal_8ms.hh",
-        3: "Kaimal_12ms.hh",
-        4: "Kaimal_15ms.hh",
-        5: "Kaimal_18ms.hh",
-        6: "Kaimal_15ms_no_shear.hh",
-        7: "EOG.hh",
-        8: "MATLAB_Generated_Steps_partial_load.hh",
-        9: "step.hh",
-    }
-    return switcher.get(argument, "Invalid wind profile number!")
-
-
-def MakeWSP(SimParams, wind_profile_options):
-    """Make wind speed array"""
-    wsp_file_name = wind_profile_to_name(wind_profile_options)
-
-    t = np.linspace(0, SimParams.sim_tend, SimParams.nsim)
-    wsp_data = pd.read_csv("WindFiles/" + wsp_file_name, sep=r"\s+")
-    wsp = np.interp(t, wsp_data.iloc[:, 0], wsp_data.iloc[:, 1])
+def load_wsp_array(sim_params, wind_file_name):
+    """Load wind speed array from file"""
+    t = np.linspace(0, sim_params.sim_tend, sim_params.nsim)
+    wsp_data = np.loadtxt(wind_file_name)
+    wsp = np.interp(t, wsp_data[:, 0], wsp_data[:, 1])
     return wsp, t
 
 
@@ -445,7 +427,7 @@ def PI_Controller(GenRot, SimParams, Controller):
     return U
 
 
-def simulate(SimParams, WT, Controller, wind_profile_options):
+def simulate(SimParams, WT, Controller, wind_file_name):
     """
     Simulate a wind turbine with a given controller, simulation parameters
     and wind profile.
@@ -462,7 +444,7 @@ def simulate(SimParams, WT, Controller, wind_profile_options):
     y = np.zeros([WT.C.shape[0], 1])
     u = np.zeros([2, 1])  # [pitch; Qg]
     x[0, 0] = SimParams.omega0
-    wsp, t = MakeWSP(SimParams, wind_profile_options)
+    wsp, t = load_wsp_array(SimParams, wind_file_name)
 
     for k in range(SimParams.nsim):
         x_, y_ = WT_nonlinear(x[:, -1], y[:, -1], u[:, -1], wsp[k], WT)
