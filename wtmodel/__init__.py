@@ -490,7 +490,7 @@ def gen_plot(WT, SimParams, data, figsize):
     ax[2, 1].set(title="Wind Speed [m/s]", xticklabels=[], xlim=xlim)
     ax[2, 1].grid()
 
-    ax[3, 0].plot(t, Pe)
+    ax[3, 0].plot(t, Pe * 1e-6)
     ax[3, 0].set(title="Generated Power [MW]", xlabel="Time [s]", xlim=xlim)
     ax[3, 0].grid()
 

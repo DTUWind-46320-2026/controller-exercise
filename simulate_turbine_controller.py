@@ -33,13 +33,43 @@ DYNAMICS_MODEL = "WT0"  # see module docstring for options
 wind_turbine = wtmodel.WindTurbine(DYNAMICS_MODEL, sim_settings)
 
 # ----------------- wind turbine controller -----------------
-CONTROLLER_TYPE = "OL"  # see module docstring for options
+PART = 1
+
+# Find these values in Part 1! And then keep your edited values
+# for Part 2 and Part 3.
 OL_PITCH = 1  #  open-loop pitch angle [deg]
 OL_GEN_TORQUE = 1  # open-loop generator torque [Nm]
 
-controller = wtmodel.Controller(
-    CONTROLLER_TYPE, Open_Loop_Pitch=OL_PITCH, Open_Gen_Torque=OL_GEN_TORQUE
-)
+if PART == 1:
+    CONTROLLER_TYPE = "OL"  # see module docstring for options
+
+    controller = wtmodel.Controller(
+        CONTROLLER_TYPE, Open_Loop_Pitch=OL_PITCH, Open_Gen_Torque=OL_GEN_TORQUE
+    )
+
+elif PART == 2:
+    CONTROLLER_TYPE = "P"  # Controller Type, OL:Open Loop, P: Porportional
+    Kp = 1
+    controller = wtmodel.Controller(
+        CONTROLLER_TYPE,
+        Kp=Kp,
+        Open_Loop_Pitch=OL_PITCH,
+        Open_Gen_Torque=OL_GEN_TORQUE,
+    )
+
+elif PART == 3:
+    CONTROLLER_TYPE = "PI"  # Controller Type, OL:Open Loop, P: Proportional, PI: Proportional-Integral
+    Kp = 1
+    Ki = 1
+    controller = wtmodel.Controller(
+        CONTROLLER_TYPE,
+        Kp=Kp,
+        Ki=Ki,
+        Open_Loop_Pitch=OL_PITCH,
+        Open_Gen_Torque=OL_GEN_TORQUE,
+    )
+else:
+    raise ValueError("Variable 'part' must be integer 1, 2 or 3!")
 
 # ----------------- wind time series -----------------
 WIND_FILE = (
