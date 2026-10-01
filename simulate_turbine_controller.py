@@ -1,7 +1,7 @@
 """
 Simulate a simple model of a wind turbine with a controller.
 
-Possible variations in the script:
+Things you can vary in the script:
     * Wind turbine model dynamics:
         WP0: only a rigid rotor
         WP1: rigid rotor plus a flexible drivetrain
@@ -29,27 +29,25 @@ SIM_TEND = 200.0  # simulation length [s]
 sim_settings = wtmodel.SimulationParameters(sim_tend=SIM_TEND)
 
 # ----------------- wind turbine model dynamics -----------------
-# WT0:Rotor,   WT1:Rotor + DT,  WT2:Rotor + DT + Tower fore-aft
-DYNAMICS_MODEL = "WT0"
+DYNAMICS_MODEL = "WT0"  # see module docstring for options
 wind_turbine = wtmodel.WindTurbine(DYNAMICS_MODEL, sim_settings)
 
 # ----------------- wind turbine controller -----------------
-# TODO reset
 CONTROLLER_TYPE = "OL"  # see module docstring for options
-# Open_Loop_Pitch = 1  #  pitch angle in degrees
-# Open_Gen_Torque = 1  # generator reaction torque in Nm
-OL_PITCH = 7.824  #  open-loop pitch angle [deg]
-OL_GEN_TORQUE = 9.95025e6  # open-loop generator torque [Nm]
+OL_PITCH = 1  #  open-loop pitch angle [deg]
+OL_GEN_TORQUE = 1  # open-loop generator torque [Nm]
 
 controller = wtmodel.Controller(
     CONTROLLER_TYPE, Open_Loop_Pitch=OL_PITCH, Open_Gen_Torque=OL_GEN_TORQUE
 )
 
 # ----------------- wind time series -----------------
-WIND_FILE = ROOT / "WindFiles" / "MATLAB_Generated_Steps.hh"
+WIND_FILE = (
+    ROOT / "WindFiles" / "MATLAB_Generated_Steps.hh"
+)  # see module docstring for options
 
 
-# ----------------- simulate system response -----------------
+# ----------------- simulate the system response -----------------
 data = wtmodel.simulate(sim_settings, wind_turbine, controller, WIND_FILE)
 
 # ----------------- visualize results -----------------

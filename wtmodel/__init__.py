@@ -1,4 +1,4 @@
-"""Initialization file for wtmodel package"""
+"""Classes and functions used to simulate a simple wind-turbine controller"""
 
 import warnings
 from pathlib import Path
@@ -22,7 +22,7 @@ class SimulationParameters:
 
 
 class WindTurbine:
-    """Wind turbine parameters"""
+    """Wind turbine parameters and state-space matrices"""
 
     # Parameters in file
     CSV_folder = (
@@ -108,13 +108,9 @@ class WindTurbine:
         )
 
         # Convert to numpy arrays
-        # tsr = self.tsr_range.to_numpy()  # TODO clean
-        # pitch = self.pitch_range.to_numpy()
         tsr = self.tsr_range
         pitch = self.pitch_range
 
-        # cp_values = self.CP_grid.to_numpy()  # TODO clean
-        # ct_values = self.CT_grid.to_numpy()
         cp_values = self.CP_grid
         ct_values = self.CT_grid
 
@@ -135,13 +131,6 @@ class WindTurbine:
             fill_value=None,
         )
 
-        # self.Cp = interpolate.interp2d(
-        #     self.tsr_range, self.pitch_range, self.CP_grid.T, kind="linear"
-        # )
-        # self.Ct = interpolate.interp2d(
-        #     self.tsr_range, self.pitch_range, self.CT_grid.T, kind="linear"
-        # )
-
         # ------ get continuous state-space matrices ------
 
         # WT0: Rotor
@@ -150,8 +139,6 @@ class WindTurbine:
             B_c = np.array([[1.0, -1.0]])
             C_c = np.eye(len(A_c))
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # # discretise the system  # TODO clean
-            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
         # WT1: Rotor+DT
         elif self.Model == "WT1":
@@ -169,8 +156,6 @@ class WindTurbine:
             B_c = np.array([[1, 0], [0, -1], [0, 0]])
             C_c = np.array([[0, 1, 0]])
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # # discretise the system  # TODO clean
-            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
         # Rotor+DT+Tower fore-aft
         elif self.Model == "WT2":
@@ -204,8 +189,6 @@ class WindTurbine:
             B_c = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 1]])
             C_c = np.array([[0, 1, 0, 0, 0]])
             D_c = np.zeros([C_c.shape[0], B_c.shape[1]])
-            # # discretise the system  # TODO clean
-            # self.A, self.B, self.C, self.D = discretise(A_c, B_c, C_c, D_c, SimParams)
 
         else:
             print("Invalid wind turbine model!")
@@ -472,48 +455,50 @@ def gen_plot(WT, SimParams, data, figsize):
         warnings.warn("Invalid WT type!")
 
     BladePitch = data["u"][0, :]
-    GenTq = data["u"][1, :]
-    # GenTq = data["u"][1, :] / WT.GEARBOX_RATIO
+    GenTq = data["u"][1, :] / WT.GEARBOX_RATIO
 
     WSP = data["wsp"]
     Pe = OmegaG * GenTq
     Cp = (Pe / WT.Efficiency) / (0.5 * WT.Air_density * WT.Rotor_Swept_Area * WSP**3)
 
+    xlim = (t[0], t[-1])
+
     fig, ax = plt.subplots(4, 2, figsize=figsize)
-    fig.tight_layout()
     fig.subplots_adjust(hspace=0.5)
     ax[0, 0].plot(t, OmegaR)
-    ax[0, 0].set(title="Rotor Speed [rad/s]", xlabel="Time [s]")
-    ax[0, 0].grid()
     ax[0, 0].plot(t, 1.005 * np.ones(t.shape), "r--")
+    ax[0, 0].set(title="Rotor Speed [rad/s]", xticklabels=[], xlim=xlim)
+    ax[0, 0].grid()
 
     ax[0, 1].plot(t, OmegaG)
-    ax[0, 1].set(title="Generator Speed HSS  [rad/s]", xlabel="Time [s]")
+    ax[0, 1].set(title="Generator Speed HSS  [rad/s]", xticklabels=[], xlim=xlim)
     ax[0, 1].grid()
 
     ax[1, 0].plot(t, Vt)
-    ax[1, 0].set(title="Tower fore-aft velocity [m/s]", xlabel="Time [s]")
+    ax[1, 0].set(title="Tower fore-aft velocity [m/s]", xticklabels=[], xlim=xlim)
     ax[1, 0].grid()
 
     ax[1, 1].plot(t, BladePitch)
-    ax[1, 1].set(title="Blade Pitch [deg]", xlabel="Time [s]")
+    ax[1, 1].set(title="Blade Pitch [deg]", xticklabels=[], xlim=xlim)
     ax[1, 1].grid()
 
     ax[2, 0].plot(t, GenTq)
-    ax[2, 0].set(title="Generator Torque [Nm]", xlabel="Time [s]")
+    ax[2, 0].set(title="Generator Torque [Nm]", xticklabels=[], xlim=xlim)
     ax[2, 0].grid()
 
     ax[2, 1].plot(t, WSP)
-    ax[2, 1].set(title="Wind Speed [m/s]", xlabel="Time [s]")
+    ax[2, 1].set(title="Wind Speed [m/s]", xticklabels=[], xlim=xlim)
     ax[2, 1].grid()
 
     ax[3, 0].plot(t, Pe)
-    ax[3, 0].set(title="Generated Power [MW]", xlabel="Time [s]")
+    ax[3, 0].set(title="Generated Power [MW]", xlabel="Time [s]", xlim=xlim)
     ax[3, 0].grid()
 
     ax[3, 1].plot(t, Cp)
-    ax[3, 1].set(title="Cp [-]", xlabel="Time [s]")
+    ax[3, 1].set(title="Cp [-]", xlabel="Time [s]", xlim=xlim)
     ax[3, 1].grid()
+
+    fig.tight_layout()
 
     fig2, ax2 = plt.subplots(figsize=(8, 5))
     CP_NN = WT.CP_grid
@@ -530,7 +515,8 @@ def gen_plot(WT, SimParams, data, figsize):
     ax2.plot(BladePitch, Lambda, "r.")
     plt.ylim(2, 18)
 
-    plt.tight_layout()
+    fig2.tight_layout()
+
     plt.show()
 
 
